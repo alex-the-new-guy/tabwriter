@@ -1,0 +1,301 @@
+<body onload="init_page()">
+    <script>
+
+        function init_page()
+        {
+            spawnDefalultColumns();
+        }
+        function spawnNewColumn() {
+            // подтягивание основной "зоны", где лежат колонны
+            const contentArea = document.getElementById("columns_area");
+            // подтягивание колонны из темплейта
+            const columnTemplate = document.getElementById("column_template");
+            const column = columnTemplate.content.children[0];
+            // клон колонны
+            const newColumn = document.importNode(column, 1);
+            // собственно добавление колонны в окно
+            contentArea.appendChild(newColumn);
+            updateColumnWidths();
+        }
+    </script>
+    <script>
+        function spawnDefalultColumns()
+        {
+            spawnNewColumn();
+            spawnNewColumn();
+        }
+    </script>
+    <script>
+        function updateColumnWidths()
+        {
+            const contentArea = document.getElementById("columns_area");
+            const minWidth = 300;
+
+            // размер
+            let free_area_px = 0;
+
+            let totalColumnWidth = 0;
+            let columnCounter = 0;
+            for (const column of contentArea.children)
+            {
+                if (column.dataset.userWidth == undefined)
+                {
+                    column.style["width"] = `${Math.floor(100/contentArea.children.length)}%`;
+                    if (Number(column.clientWidth) < minWidth)
+                    {
+                        column.style["width"] = `${minWidth}px`;
+                    }
+                } else {
+                    column.style["width"] = column.dataset.userWidth;
+                }
+
+                totalColumnWidth += column.clientWidth;
+                updateColumnLayout(column);
+            }
+            contentArea.style["width"] = `${totalColumnWidth + 60}px`
+        }
+
+        // относительный размер объектов внутри колонны
+        function updateColumnLayout(column)
+        {
+            const columnWidth_px = column.clientWidth;
+
+            const textArea = column.querySelector(".textDisplayEditArea");
+            const dividerLine = column.querySelector(".divider_line");
+            
+            textArea.style["width"] = `${columnWidth_px - dividerLine.clientWidth - 1}px`
+
+            const columnHeaderArea = column.querySelector(".columnHeaderArea");
+
+            
+            const columnInstrumentPanel = columnHeaderArea.querySelector(".columnInstrumentPanel");
+            let totalInstrumentWidth = 0;
+
+            for (instrument of columnInstrumentPanel.children)
+            {
+                totalInstrumentWidth += columnInstrumentPanel.getBoundingClientRect().width;     
+            }
+            
+            const columnHeader = columnHeaderArea.querySelector(".columnHeader");
+            const headerWidth = columnHeader.getBoundingClientRect().width;
+
+            if (totalInstrumentWidth + headerWidth < columnHeaderArea.clientWidth)
+            {
+                columnInstrumentPanel.style.width = totalInstrumentWidth;
+            }
+
+        }
+    </script>
+
+    <script>
+    let mouseIsDown = false;
+    let currentColumn = null;
+
+    function enableDrag(event)
+    {
+        mouseIsDown = true;
+        currentColumn = event.target.parentElement;
+
+        document.addEventListener("mousemove", moveColumnBorder, event);
+        document.addEventListener("mouseup", disableDrag);
+
+    }
+
+    function disableDrag(event)
+    {
+        mouseIsDown = false;
+
+        const dividerLine = currentColumn.querySelector(".divider_line");
+
+        dividerLine.style["background-color"] = "black";
+
+        document.removeEventListener("mousemove", moveColumnBorder, event);
+        document.removeEventListener("mouseup", disableDrag);
+    }
+
+    function moveColumnBorder(event)
+    {
+        if (mouseIsDown == false)
+        {
+            return;
+        }
+
+        const targetColumn = currentColumn;
+        const movementAmount = event.movementX;
+
+        const oldAreaWidth = targetColumn.clientWidth;
+
+        targetColumn.style["width"] = `${oldAreaWidth + movementAmount}px`
+
+        targetColumn.dataset.userWidth = targetColumn.style["width"];
+
+        const divider_line = targetColumn.querySelector(".divider_line");
+
+        //console.log(divider_line);
+
+        divider_line.style["background-color"] = "yellow";
+
+
+        updateColumnWidths();
+    }
+    </script>
+
+    <script>
+        function setup_changeColumnName(event)
+        {
+            const targetColumnHeader = event.target;
+            const oldColumnName = targetColumnHeader.innerHTML;
+
+            targetColumnHeader.innerHTML = ""
+
+            const column = targetColumnHeader.parentElement;
+
+            const tmpTextInput = document.createElement("input");
+            tmpTextInput.onkeydown = function(event) {finish_changeColumnName(event)};
+            //tmpTextInput.style["float"] = "inline-start";
+            //tmpTextInput.style["width"] = "100%"
+
+            tmpTextInput.value = oldColumnName;
+
+            // column.insertBefore(tmpTextInput, column.firstChild);
+            targetColumnHeader.appendChild(tmpTextInput);
+
+
+            tmpTextInput.focus();
+            tmpTextInput.select();
+        }
+
+        function finish_changeColumnName(event)
+        {
+
+            if(event.key != "Enter")
+            {
+                return;
+            }
+
+            if (event.shiftKey)
+            {
+                //event.target.value += "\n";
+                return;
+            }
+
+            const parentContainer = event.target.parentElement;
+
+            const userColumnName = event.target.value;
+
+            parentContainer.innerHTML = userColumnName;
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        
+        function getClassParentElement_recurse(target, className)
+        {
+            
+            while (target)
+            {
+                if (target.className == className)
+                {   
+                    return target;
+                }
+
+                target = target.parentElement;
+            }
+
+            return null;
+        }
+
+        function switchTextDisplayMode(event)
+        {
+            const targetColumn = event.target.parentElement;
+
+        }
+    
+        function displayMD(event)
+        {
+
+            const targetColumn = getClassParentElement_recurse(
+                event.target, "column_container");
+
+            const mdDisplayArea = targetColumn.querySelector(".column_md_area");
+            console.log(mdDisplayArea);
+
+            const columnTextArea = targetColumn.querySelector(".columnTextArea");
+            const mdContents = columnTextArea.value;
+            columnTextArea.style["display"] = "none";
+
+            mdDisplayArea.style["display"] = "block";
+            mdDisplayArea.innerHTML = marked.parse(mdContents);
+
+            const textDisplayContainer = targetColumn.querySelector(".textDisplayEditArea");
+            
+
+        }
+
+        function displayRaw(event)
+        {
+
+        }
+    </script>
+
+    <template id="column_template">
+        <div class = "column_container" style="float: left;">
+            <div
+                class="divider_line"
+                style="width: 5px; background-color: black; float: inline-end; height: 100%; cursor: col-resize;"
+                onmousedown="enableDrag(event)"
+                onmousemove="moveColumnBorder(event)"
+            ></div>
+
+            <div
+                class="columnHeaderArea"
+                style="width: 100%; height: 20px;"
+            >
+                <div class = "columnHeaderContents">
+                    <div
+                        class="columnInstrumentPanel"
+                        style="float: right"
+                    >
+                        <button
+                            onclick="displayMD(event)"
+                        >md</button>
+                    </div>
+
+                    <div
+                        class="columnHeader" style=""
+                        onclick="setup_changeColumnName(event)"
+                    >Колонна 1</div>
+                </div>
+                <div
+                    class="columnHeaderDividerLine"
+                    style="background-color: black;width: 100%; height: 2px; cursor: row-resize;"
+                ></div>
+            </div>
+            <div
+                class = "textDisplayEditArea"
+                style="width: 100%; height: 100%;"
+                data-textDisplayState="raw"
+            >
+                <div class="column_md_area"
+                    style="display: none;"
+                ></div>
+                <textarea
+                    class="columnTextArea"
+                    style="height: 100%; width: 100%; float: left; resize: none;"
+                ></textarea>
+            </div>
+        </div>
+    </template>
+
+    <div id="ui_area">
+        <div id="main_content_area" style="overflow: auto; width: 95%; height: 100%; max-height: 100%; float:left">
+            <div id="columns_area" style="overflow: auto; float:left">
+            </div>
+        </div>
+        <div id="right_instrument_panel" style="float: right; position: sticky; right:0; height: 100%; background-color: red;">
+            <button onclick="spawnNewColumn()" style="float: top">+</button>
+        </div>
+    </div>
+</body>
